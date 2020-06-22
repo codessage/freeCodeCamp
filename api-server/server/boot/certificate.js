@@ -6,6 +6,7 @@ import { Observable } from 'rx';
 import debug from 'debug';
 import { isEmail } from 'validator';
 import format from 'date-fns/format';
+import { reportError } from '../middlewares/sentry-error-handler.js';
 
 import { ifNoUser401 } from '../utils/middleware';
 import { observeQuery } from '../utils/rx';
@@ -13,14 +14,20 @@ import {
   legacyFrontEndChallengeId,
   legacyBackEndChallengeId,
   legacyDataVisId,
+  legacyInfosecQaId,
+  legacyFullStackId,
   respWebDesignId,
   frontEndLibsId,
   jsAlgoDataStructId,
   dataVis2018Id,
   apisMicroservicesId,
-  infosecQaId,
-  fullStackId
+  qaV7Id,
+  infosecV7Id,
+  sciCompPyV7Id,
+  dataAnalysisPyV7Id,
+  machineLearningPyV7Id
 } from '../utils/constantStrings.json';
+import { oldDataVizId } from '../../../config/misc';
 import certTypes from '../utils/certTypes.json';
 import superBlockCertTypeMap from '../utils/superBlockCertTypeMap';
 import { completeCommitment$ } from '../utils/commit';
@@ -37,7 +44,17 @@ export default function bootCertificate(app) {
   api.put('/certificate/verify', ifNoUser401, ifNoSuperBlock404, verifyCert);
   api.get('/certificate/showCert/:username/:cert', showCert);
 
-  app.use('/internal', api);
+  app.use(api);
+}
+
+export function getFallbackFrontEndDate(completedChallenges, completedDate) {
+  var chalIds = [...Object.values(certIds), oldDataVizId];
+
+  const latestCertDate = completedChallenges
+    .filter(chal => chalIds.includes(chal.id))
+    .sort((a, b) => b.completedDate - a.completedDate)[0].completedDate;
+
+  return latestCertDate ? latestCertDate : completedDate;
 }
 
 const noNameMessage = dedent`
@@ -62,6 +79,12 @@ const successMessage = (username, name) => dedent`
     Congratulations on behalf of the freeCodeCamp.org team!
     `;
 
+const failureMessage = name => dedent`
+    Something went wrong with the verification of ${name}, please try again.
+    If you continue to receive this error, you can send a message to
+    support@freeCodeCamp.org to get help.
+    `;
+
 function ifNoSuperBlock404(req, res, next) {
   const { superBlock } = req.body;
   if (superBlock && superBlocks.includes(superBlock)) {
@@ -70,7 +93,7 @@ function ifNoSuperBlock404(req, res, next) {
   return res.status(404).end();
 }
 
-const renderCertifedEmail = loopback.template(
+const renderCertifiedEmail = loopback.template(
   path.join(__dirname, '..', 'views', 'emails', 'certified.ejs')
 );
 
@@ -82,6 +105,8 @@ function createCertTypeIds(app) {
     [certTypes.frontEnd]: getIdsForCert$(legacyFrontEndChallengeId, Challenge),
     [certTypes.backEnd]: getIdsForCert$(legacyBackEndChallengeId, Challenge),
     [certTypes.dataVis]: getIdsForCert$(legacyDataVisId, Challenge),
+    [certTypes.infosecQa]: getIdsForCert$(legacyInfosecQaId, Challenge),
+    [certTypes.fullStack]: getIdsForCert$(legacyFullStackId, Challenge),
 
     // modern
     [certTypes.respWebDesign]: getIdsForCert$(respWebDesignId, Challenge),
@@ -92,8 +117,14 @@ function createCertTypeIds(app) {
       apisMicroservicesId,
       Challenge
     ),
-    [certTypes.infosecQa]: getIdsForCert$(infosecQaId, Challenge),
-    [certTypes.fullStack]: getIdsForCert$(fullStackId, Challenge)
+    [certTypes.qaV7]: getIdsForCert$(qaV7Id, Challenge),
+    [certTypes.infosecV7]: getIdsForCert$(infosecV7Id, Challenge),
+    [certTypes.sciCompPyV7]: getIdsForCert$(sciCompPyV7Id, Challenge),
+    [certTypes.dataAnalysisPyV7]: getIdsForCert$(dataAnalysisPyV7Id, Challenge),
+    [certTypes.machineLearningPyV7]: getIdsForCert$(
+      machineLearningPyV7Id,
+      Challenge
+    )
   };
 }
 
@@ -107,39 +138,54 @@ const certIds = {
   [certTypes.frontEnd]: legacyFrontEndChallengeId,
   [certTypes.backEnd]: legacyBackEndChallengeId,
   [certTypes.dataVis]: legacyDataVisId,
+  [certTypes.infosecQa]: legacyInfosecQaId,
+  [certTypes.fullStack]: legacyFullStackId,
   [certTypes.respWebDesign]: respWebDesignId,
   [certTypes.frontEndLibs]: frontEndLibsId,
   [certTypes.jsAlgoDataStruct]: jsAlgoDataStructId,
   [certTypes.dataVis2018]: dataVis2018Id,
   [certTypes.apisMicroservices]: apisMicroservicesId,
-  [certTypes.infosecQa]: infosecQaId,
-  [certTypes.fullStack]: fullStackId
+  [certTypes.qaV7]: qaV7Id,
+  [certTypes.infosecV7]: infosecV7Id,
+  [certTypes.sciCompPyV7]: sciCompPyV7Id,
+  [certTypes.dataAnalysisPyV7]: dataAnalysisPyV7Id,
+  [certTypes.machineLearningPyV7]: machineLearningPyV7Id
 };
 
 const certText = {
   [certTypes.frontEnd]: 'Legacy Front End',
   [certTypes.backEnd]: 'Legacy Back End',
   [certTypes.dataVis]: 'Legacy Data Visualization',
-  [certTypes.fullStack]: 'Full Stack',
+  [certTypes.infosecQa]: 'Legacy Information Security and Quality Assurance',
+  [certTypes.fullStack]: 'Legacy Full Stack',
   [certTypes.respWebDesign]: 'Responsive Web Design',
   [certTypes.frontEndLibs]: 'Front End Libraries',
   [certTypes.jsAlgoDataStruct]: 'JavaScript Algorithms and Data Structures',
   [certTypes.dataVis2018]: 'Data Visualization',
   [certTypes.apisMicroservices]: 'APIs and Microservices',
-  [certTypes.infosecQa]: 'Information Security and Quality Assurance'
+  [certTypes.qaV7]: 'Quality Assurance',
+  [certTypes.infosecV7]: 'Information Security',
+  [certTypes.sciCompPyV7]: 'Scientific Computing with Python',
+  [certTypes.dataAnalysisPyV7]: 'Data Analysis with Python',
+  [certTypes.machineLearningPyV7]: 'Machine Learning with Python'
 };
 
 const completionHours = {
   [certTypes.frontEnd]: 400,
   [certTypes.backEnd]: 400,
   [certTypes.dataVis]: 400,
+  [certTypes.infosecQa]: 300,
   [certTypes.fullStack]: 1800,
   [certTypes.respWebDesign]: 300,
   [certTypes.frontEndLibs]: 300,
   [certTypes.jsAlgoDataStruct]: 300,
   [certTypes.dataVis2018]: 300,
   [certTypes.apisMicroservices]: 300,
-  [certTypes.infosecQa]: 300
+  [certTypes.qaV7]: 300,
+  [certTypes.infosecV7]: 300,
+  [certTypes.sciCompPyV7]: 400,
+  [certTypes.dataAnalysisPyV7]: 400,
+  [certTypes.machineLearningPyV7]: 400
 };
 
 function getIdsForCert$(id, Challenge) {
@@ -163,7 +209,11 @@ function sendCertifiedEmail(
     isJsAlgoDataStructCert,
     isDataVisCert,
     isApisMicroservicesCert,
-    isInfosecQaCert
+    isQaCertV7,
+    isInfosecCertV7,
+    isSciCompPyCertV7,
+    isDataAnalysisPyCertV7,
+    isMachineLearningPyCertV7
   },
   send$
 ) {
@@ -174,7 +224,11 @@ function sendCertifiedEmail(
     !isJsAlgoDataStructCert ||
     !isDataVisCert ||
     !isApisMicroservicesCert ||
-    !isInfosecQaCert
+    !isQaCertV7 ||
+    !isInfosecCertV7 ||
+    !isSciCompPyCertV7 ||
+    !isDataAnalysisPyCertV7 ||
+    !isMachineLearningPyCertV7
   ) {
     return Observable.just(false);
   }
@@ -186,7 +240,7 @@ function sendCertifiedEmail(
       Congratulations on completing all of the
       freeCodeCamp certifications!
     `,
-    text: renderCertifedEmail({
+    text: renderCertifiedEmail({
       username,
       name
     })
@@ -202,10 +256,15 @@ function getUserIsCertMap(user) {
     is2018DataVisCert = false,
     isApisMicroservicesCert = false,
     isInfosecQaCert = false,
+    isQaCertV7 = false,
+    isInfosecCertV7 = false,
     isFrontEndCert = false,
     isBackEndCert = false,
     isDataVisCert = false,
-    isFullStackCert = false
+    isFullStackCert = false,
+    isSciCompPyCertV7 = false,
+    isDataAnalysisPyCertV7 = false,
+    isMachineLearningPyCertV7 = false
   } = user;
 
   return {
@@ -215,10 +274,15 @@ function getUserIsCertMap(user) {
     is2018DataVisCert,
     isApisMicroservicesCert,
     isInfosecQaCert,
+    isQaCertV7,
+    isInfosecCertV7,
     isFrontEndCert,
     isBackEndCert,
     isDataVisCert,
-    isFullStackCert
+    isFullStackCert,
+    isSciCompPyCertV7,
+    isDataAnalysisPyCertV7,
+    isMachineLearningPyCertV7
   };
 }
 
@@ -245,26 +309,28 @@ function createVerifyCert(certTypeIds, app) {
           [certType]: true
         };
 
-        if (challenge) {
-          const { id, tests, challengeType } = challenge;
-          if (
-            !user[certType] &&
-            !isCertified(tests, user.completedChallenges)
-          ) {
-            return Observable.just(notCertifiedMessage(certName));
-          }
-          updateData = {
-            ...updateData,
-            completedChallenges: [
-              ...user.completedChallenges,
-              {
-                id,
-                completedDate: new Date(),
-                challengeType
-              }
-            ]
-          };
+        // certificate doesn't exist or
+        // connection error
+        if (!challenge) {
+          reportError(`Error claiming ${certName}`);
+          return Observable.just(failureMessage(certName));
         }
+
+        const { id, tests, challengeType } = challenge;
+        if (!user[certType] && !isCertified(tests, user.completedChallenges)) {
+          return Observable.just(notCertifiedMessage(certName));
+        }
+        updateData = {
+          ...updateData,
+          completedChallenges: [
+            ...user.completedChallenges,
+            {
+              id,
+              completedDate: new Date(),
+              challengeType
+            }
+          ]
+        };
 
         if (!user.name) {
           return Observable.just(noNameMessage);
@@ -304,7 +370,11 @@ function createVerifyCert(certTypeIds, app) {
             type: message.includes('Congratulations') ? 'success' : 'info',
             message
           },
-          isCertMap: getUserIsCertMap(user)
+          isCertMap: getUserIsCertMap(user),
+          // send back the completed challenges
+          // NOTE: we could just send back the latest challenge, but this
+          // ensures the challenges are synced.
+          completedChallenges: user.completedChallenges
         });
       }, next);
   };
@@ -339,6 +409,11 @@ function createShowCert(app) {
       is2018DataVisCert: true,
       isApisMicroservicesCert: true,
       isInfosecQaCert: true,
+      isQaCertV7: true,
+      isInfosecCertV7: true,
+      isSciCompPyCertV7: true,
+      isDataAnalysisPyCertV7: true,
+      isMachineLearningPyCertV7: true,
       isHonest: true,
       username: true,
       name: true,
@@ -437,17 +512,23 @@ function createShowCert(app) {
         let { completedDate = new Date() } = certChallenge || {};
 
         // the challenge id has been rotated for isDataVisCert
-        // so we need to check for id 561add10cb82ac38a17513b3
         if (certType === 'isDataVisCert' && !certChallenge) {
-          console.log('olderId');
           let oldDataVisIdChall = _.find(
             completedChallenges,
-            ({ id }) => '561add10cb82ac38a17513b3' === id
+            ({ id }) => oldDataVizId === id
           );
 
           if (oldDataVisIdChall) {
             completedDate = oldDataVisIdChall.completedDate || completedDate;
           }
+        }
+
+        // if fullcert is not found, return the latest completedDate
+        if (certType === 'isFullStackCert' && !certChallenge) {
+          completedDate = getFallbackFrontEndDate(
+            completedChallenges,
+            completedDate
+          );
         }
 
         const { username, name } = user;

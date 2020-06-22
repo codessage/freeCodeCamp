@@ -2,6 +2,7 @@
 id: 587d7b7a367417b2b2512b12
 title: Copy Array Items Using slice()
 challengeType: 1
+isHidden: false
 forumTopicId: 301158
 ---
 
@@ -46,12 +47,12 @@ tests:
 
 ```js
 function forecast(arr) {
-  // change code below this line
+  // Only change code below this line
 
   return arr;
 }
 
-// do not change code below this line
+// Only change code above this line
 console.log(forecast(['cold', 'rainy', 'warm', 'sunny', 'cool', 'thunderstorms']));
 ```
 

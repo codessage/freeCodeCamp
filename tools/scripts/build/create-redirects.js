@@ -1,6 +1,6 @@
 const apiPlaceholderRE = /#\{\{API\}\}/g;
 const newsPlaceholderRE = /#\{\{NEWS\}\}/g;
-const forumPlacehilderRE = /#\{\{FORUM\}\}/g;
+const forumPlaceholderRE = /#\{\{FORUM\}\}/g;
 
 exports.createRedirects = function createRedirects(locations) {
   const { api, newsProxy, forumProxy } = locations;
@@ -18,7 +18,7 @@ exports.createRedirects = function createRedirects(locations) {
   return template
     .replace(apiPlaceholderRE, api)
     .replace(newsPlaceholderRE, newsProxy)
-    .replace(forumPlacehilderRE, forumProxy);
+    .replace(forumPlaceholderRE, forumProxy);
 };
 
 /* eslint-disable max-len */
@@ -30,10 +30,6 @@ const template = `
 # domain mappings
 https://freecodecamp-dev.netlify.com/*        https://www.freecodecamp.dev/:splat 301!
 https://freecodecamp-org.netlify.com/*        https://www.freecodecamp.org/:splat 301!
-
-
-#api redirect
-/internal/*                                   #{{API}}/internal/:splat 200!
 
 # pages
 /about                                        #{{NEWS}}/about 200
@@ -65,10 +61,10 @@ https://freecodecamp-org.netlify.com/*        https://www.freecodecamp.org/:spla
 /signup                                       #{{API}}/signin 200!
 
 # certification redirects
-/:username/front-end-certification            /certification/:username/legacy-front-end 301
-/:username/data-visualization-certification   /certification/:username/legacy-data-visualization 301
-/:username/back-end-certification             /certification/:username/legacy-back-end 301
-/:username/full-stack-certification           /certification/:username/full-stack 301
+/:username/front-end-certification                     /certification/:username/legacy-front-end 301
+/:username/data-visualization-certification            /certification/:username/legacy-data-visualization 301
+/:username/back-end-certification                      /certification/:username/legacy-back-end 301
+/:username/full-stack-certification                    /certification/:username/full-stack 301
 
 # unsubscribe redirects
 /u/*                                          #{{API}}/u/:splat 200!

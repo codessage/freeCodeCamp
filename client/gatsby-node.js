@@ -3,7 +3,7 @@ const env = require('../config/env');
 const { createFilePath } = require('gatsby-source-filesystem');
 
 const { dasherize } = require('../utils/slugs');
-const { blockNameify } = require('./utils/blockNameify');
+const { blockNameify } = require('../utils/block-nameify');
 const {
   createChallengePages,
   createBlockIntroPages,
@@ -73,6 +73,7 @@ exports.createPages = function createPages({ graphql, actions, reporter }) {
         {
           allChallengeNode(
             sort: { fields: [superOrder, order, challengeOrder] }
+            filter: { isHidden: { eq: false } }
           ) {
             edges {
               node {
@@ -161,25 +162,30 @@ exports.createPages = function createPages({ graphql, actions, reporter }) {
 
 const MonacoWebpackPlugin = require('monaco-editor-webpack-plugin');
 
-exports.onCreateWebpackConfig = ({ plugins, actions }) => {
+exports.onCreateWebpackConfig = ({ stage, plugins, actions }) => {
+  const newPlugins = [
+    plugins.define({
+      HOME_PATH: JSON.stringify(
+        process.env.HOME_PATH || 'http://localhost:3000'
+      ),
+      STRIPE_PUBLIC_KEY: JSON.stringify(process.env.STRIPE_PUBLIC_KEY || ''),
+      ENVIRONMENT: JSON.stringify(
+        process.env.FREECODECAMP_NODE_ENV || 'development'
+      ),
+      PAYPAL_SUPPORTERS: JSON.stringify(process.env.PAYPAL_SUPPORTERS || 404)
+    })
+  ];
+  // The monaco editor relies on some browser only globals so should not be
+  // involved in SSR. Also, if the plugin is used during the 'build-html' stage
+  // it overwrites the minfied files with ordinary ones.
+  if (stage !== 'build-html') {
+    newPlugins.push(new MonacoWebpackPlugin());
+  }
   actions.setWebpackConfig({
     node: {
       fs: 'empty'
     },
-    plugins: [
-      plugins.define({
-        HOME_PATH: JSON.stringify(
-          process.env.HOME_PATH || 'http://localhost:3000'
-        ),
-        STRIPE_PUBLIC_KEY: JSON.stringify(process.env.STRIPE_PUBLIC_KEY || ''),
-        ROLLBAR_CLIENT_ID: JSON.stringify(process.env.ROLLBAR_CLIENT_ID || ''),
-        ENVIRONMENT: JSON.stringify(
-          process.env.FREECODECAMP_NODE_ENV || 'development'
-        ),
-        PAYPAL_SUPPORTERS: JSON.stringify(process.env.PAYPAL_SUPPORTERS || 404)
-      }),
-      new MonacoWebpackPlugin()
-    ]
+    plugins: newPlugins
   });
 };
 

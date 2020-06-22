@@ -9,7 +9,7 @@ import { CertificationSettings } from './Certification';
 describe('<certification />', () => {
   // shallow rendering does not render children component
   // form buttons are not included in shallow render
-  it('Should render show cert button for calimed legacy cert', () => {
+  it('Should render show cert button for claimed legacy cert', () => {
     const { container } = render(
       <CertificationSettings {...defaultTestProps} />
     );
@@ -19,7 +19,7 @@ describe('<certification />', () => {
     ).toHaveTextContent('Show Certification');
   });
 
-  it('Should link show cert button to the calimed legacy cert', () => {
+  it('Should link show cert button to the claimed legacy cert', () => {
     const { container } = render(
       <CertificationSettings {...defaultTestProps} />
     );
@@ -28,7 +28,7 @@ describe('<certification />', () => {
       container.querySelector('#button-legacy-data-visualization')
     ).toHaveAttribute(
       'href',
-      '/certification/developementuser/legacy-data-visualization'
+      '/certification/developmentuser/legacy-data-visualization'
     );
   });
 
@@ -134,6 +134,46 @@ const defaultTestProps = {
       solution: 'https://github.com/freeCodeCamp/freeCodeCamp'
     },
     {
+      id: '5e444147903586ffb414c94c',
+      solution: 'https://github.com/freeCodeCamp/freeCodeCamp'
+    },
+    {
+      id: '5e444147903586ffb414c94d',
+      solution: 'https://github.com/freeCodeCamp/freeCodeCamp'
+    },
+    {
+      id: '5e444147903586ffb414c94e',
+      solution: 'https://github.com/freeCodeCamp/freeCodeCamp'
+    },
+    {
+      id: '5e444147903586ffb414c94f',
+      solution: 'https://github.com/freeCodeCamp/freeCodeCamp'
+    },
+    {
+      id: '5e44414f903586ffb414c950',
+      solution: 'https://github.com/freeCodeCamp/freeCodeCamp'
+    },
+    {
+      id: '5e46f7e5ac417301a38fb928',
+      solution: 'https://github.com/freeCodeCamp/freeCodeCamp'
+    },
+    {
+      id: '5e46f7e5ac417301a38fb929',
+      solution: 'https://github.com/freeCodeCamp/freeCodeCamp'
+    },
+    {
+      id: '5e46f7f8ac417301a38fb92a',
+      solution: 'https://github.com/freeCodeCamp/freeCodeCamp'
+    },
+    {
+      id: '5e46f802ac417301a38fb92b',
+      solution: 'https://github.com/freeCodeCamp/freeCodeCamp'
+    },
+    {
+      id: '5e4f5c4b570f7e3a4949899f',
+      solution: 'https://github.com/freeCodeCamp/freeCodeCamp'
+    },
+    {
       id: 'bd7157d8c242eddfaeb5bd13',
       completedDate: 1554272923799,
       solution: 'https://github.com/freeCodeCamp/freeCodeCamp'
@@ -149,10 +189,15 @@ const defaultTestProps = {
   isFullStackCert: false,
   isHonest: false,
   isInfosecQaCert: false,
+  isQaCertV7: false,
+  isInfosecCertV7: false,
   isJsAlgoDataStructCert: false,
   isRespWebDesignCert: false,
+  isSciCompPyCertV7: false,
+  isDataAnalysisPyCertV7: false,
+  isMachineLearningPyCertV7: false,
   updateLegacyCert: () => {},
-  username: 'developementuser',
+  username: 'developmentuser',
   verifyCert: () => {},
   errors: {},
   submit: () => {}

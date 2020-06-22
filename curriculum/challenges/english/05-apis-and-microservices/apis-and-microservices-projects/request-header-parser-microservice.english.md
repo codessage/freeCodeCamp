@@ -2,6 +2,7 @@
 id: bd7158d8c443edefaeb5bdff
 title: Request Header Parser Microservice
 challengeType: 4
+isHidden: false
 isRequired: true
 forumTopicId: 301507
 ---
@@ -23,9 +24,13 @@ Start this project on Glitch using <a href='https://glitch.com/edit/#!/remix/clo
 
 ```yml
 tests:
-  - text: 'I can get the IP address, language and operating system for my browser.'
-    testString: ''
-
+  - text: 'Your IP address should be returned in the <code>ipaddress</code> key.'
+    testString: 'getUserInput => $.get(getUserInput(''url'') + ''/api/whoami'').then(data => assert(data.ipaddress && data.ipaddress.length > 0), xhr => { throw new Error(xhr.responseText)})'
+  - text: 'Your preferred language should be returned in the <code>language</code> key.'
+    testString: 'getUserInput => $.get(getUserInput(''url'') + ''/api/whoami'').then(data => assert(data.language && data.language.length > 0), xhr => { throw new Error(xhr.responseText)})'
+  - text: 'Your software should be returned in the <code>software</code> key.'
+    testString: 'getUserInput => $.get(getUserInput(''url'') + ''/api/whoami'').then(data => assert(data.software && data.software.length > 0), xhr => { throw new Error(xhr.responseText)})'
+    
 ```
 
 </section>
